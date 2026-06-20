@@ -9,54 +9,64 @@ interface AdsterraAdProps {
 }
 
 export function AdsterraAd({ id, width, height }: AdsterraAdProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
 
-    // Limpiar contenido anterior
-    container.innerHTML = '';
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
 
-    // Crear elemento para las atOptions
-    const optionsScript = document.createElement('script');
-    optionsScript.type = 'text/javascript';
-    optionsScript.innerHTML = `
-      atOptions = {
-        'key' : '${id}',
-        'format' : 'iframe',
-        'height' : ${height},
-        'width' : ${width},
-        'params' : {}
-      };
-    `;
-    container.appendChild(optionsScript);
-
-    // Crear elemento para invocar el script
-    const invokeScript = document.createElement('script');
-    invokeScript.type = 'text/javascript';
-    invokeScript.src = `https://www.highperformanceformat.com/${id}/invoke.js`;
-    container.appendChild(invokeScript);
-
-    return () => {
-      if (container) {
-        container.innerHTML = '';
-      }
-    };
+    // Escribir el HTML con el script aislado dentro del iframe para evitar colisiones en variables globales
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              overflow: hidden;
+              background: transparent;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+            }
+          </style>
+        </head>
+        <body>
+          <script type="text/javascript">
+            atOptions = {
+              'key' : '${id}',
+              'format' : 'iframe',
+              'height' : ${height},
+              'width' : ${width},
+              'params' : {}
+            };
+          </script>
+          <script type="text/javascript" src="https://www.highperformanceformat.com/${id}/invoke.js"></script>
+        </body>
+      </html>
+    `);
+    doc.close();
   }, [id, width, height]);
 
   return (
-    <div
-      ref={containerRef}
+    <iframe
+      ref={iframeRef}
+      width={width}
+      height={height}
       style={{
-        width: `${width}px`,
-        height: `${height}px`,
-        margin: '0 auto',
+        border: 'none',
         overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        background: 'transparent',
+        display: 'block',
       }}
+      scrolling="no"
+      title={`ad-${id}`}
     />
   );
 }
