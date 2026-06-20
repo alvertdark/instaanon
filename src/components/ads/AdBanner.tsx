@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { AdsterraAd } from './AdsterraAd';
 
 interface AdBannerProps {
   slot: string;
@@ -10,22 +11,51 @@ interface AdBannerProps {
 }
 
 export function AdBanner({ slot, format = 'auto', style, className }: AdBannerProps) {
+  const [width, setWidth] = useState<number | null>(null);
+
   useEffect(() => {
-    try {
-      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-    } catch {}
+    setWidth(window.innerWidth);
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const isRectangle = format === 'rectangle' || slot.includes('in-feed') || slot.includes('download');
+
+  if (isRectangle) {
+    return (
+      <div className={`ad-container ${className || ''}`} style={{ display: 'flex', justifyContent: 'center', ...style }}>
+        <AdsterraAd id="c7b1b81e77014de232be709061a83a21" width={300} height={250} />
+      </div>
+    );
+  }
+
+  if (width === null) {
+    return (
+      <div className={`ad-container ${className || ''}`} style={{ ...style, minHeight: '50px' }} />
+    );
+  }
+
+  if (width >= 768) {
+    return (
+      <div className={`ad-container ${className || ''}`} style={{ display: 'flex', justifyContent: 'center', ...style }}>
+        <AdsterraAd id="2ec7f0b2cfde1bb7fab22507ac425bd7" width={728} height={90} />
+      </div>
+    );
+  }
+
+  if (width >= 480) {
+    return (
+      <div className={`ad-container ${className || ''}`} style={{ display: 'flex', justifyContent: 'center', ...style }}>
+        <AdsterraAd id="ab216fc99ed9199ac74c816c8343a975" width={468} height={60} />
+      </div>
+    );
+  }
+
   return (
-    <div className={`ad-container ${className || ''}`} style={style}>
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block', width: '100%' }}
-        data-ad-client="ca-pub-XXXXXXXXXX"
-        data-ad-slot={slot}
-        data-ad-format={format}
-        data-full-width-responsive="true"
-      />
+    <div className={`ad-container ${className || ''}`} style={{ display: 'flex', justifyContent: 'center', ...style }}>
+      <AdsterraAd id="a6741757a0e96d2d362003725e7eccd3" width={320} height={50} />
     </div>
   );
 }
+

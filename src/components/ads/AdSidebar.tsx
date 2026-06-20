@@ -1,27 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
 import styles from './AdSidebar.module.css';
+import { AdsterraAd } from './AdsterraAd';
 
 export function AdSidebar({ slot = 'sidebar-1' }: { slot?: string }) {
-  useEffect(() => {
-    try {
-      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-    } catch {}
-  }, []);
-
   return (
     <aside className={styles.wrapper}>
-      <div className="ad-container ad-sidebar-sticky">
-        <ins
-          className="adsbygoogle"
-          style={{ display: 'block' }}
-          data-ad-client="ca-pub-XXXXXXXXXX"
-          data-ad-slot={slot}
-          data-ad-format="rectangle"
-          data-full-width-responsive="false"
-        />
+      <div className="ad-container ad-sidebar-sticky" style={{ display: 'flex', justifyContent: 'center' }}>
+        <AdsterraAd id="08968988a24cd4ccbf8b0274ba572005" width={160} height={600} />
       </div>
     </aside>
   );
 }
+
