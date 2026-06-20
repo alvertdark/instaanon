@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prueba de Anuncio Adsterra</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 40px;
+      text-align: center;
+      background: #0f0f10;
+      color: #fff;
+    }
+    .ad-slot {
+      margin: 40px auto;
+      width: 160px;
+      height: 600px;
+      outline: 2px dashed #8B5CF6;
+      background: #1e1e20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <h1>Prueba de Anuncio Adsterra (160x600)</h1>
+  <p>Si el anuncio carga, debería aparecer dentro del recuadro morado:</p>
+  
+  <div class="ad-slot">
+    <script type="text/javascript">
+      atOptions = {
+        'key' : '08968988a24cd4ccbf8b0274ba572005',
+        'format' : 'iframe',
+        'height' : 600,
+        'width' : 160,
+        'params' : {}
+      };
+    </script>
+    <script type="text/javascript" src="https://www.highperformanceformat.com/08968988a24cd4ccbf8b0274ba572005/invoke.js"></script>
+  </div>
+</body>
+</html>
