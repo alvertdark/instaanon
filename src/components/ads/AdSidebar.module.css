@@ -1,0 +1,10 @@
+.wrapper {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .wrapper {
+    display: none;
+  }
+}

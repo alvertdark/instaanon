@@ -1,0 +1,71 @@
+.page {
+  padding-top: var(--space-10);
+  padding-bottom: var(--space-16);
+  max-width: 760px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.emoji {
+  font-size: 3.5rem;
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  margin-bottom: var(--space-4);
+}
+
+.hero p {
+  font-size: var(--text-lg);
+  color: var(--color-muted-light);
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.adBlock {
+  margin: var(--space-6) 0;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.message {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin: var(--space-8) 0;
+}
+
+.messageCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+}
+
+.messageCard h2 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-3);
+}
+
+.messageCard p {
+  font-size: var(--text-sm);
+  color: var(--color-muted-light);
+  line-height: 1.7;
+}
+
+.back {
+  text-align: center;
+  margin-top: var(--space-8);
+}
+
+@media (max-width: 640px) {
+  .message {
+    grid-template-columns: 1fr;
+  }
+}
