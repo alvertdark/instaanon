@@ -1,5 +1,5 @@
 // lib/adblock.ts
-// Multi-layer adblock detection
+// Multi-layer adblock detection for Adsterra
 
 export async function detectAdBlock(): Promise<boolean> {
   // Layer 1: Bait element method
@@ -27,22 +27,13 @@ export async function detectAdBlock(): Promise<boolean> {
 
   if (blocked) return true;
 
-  // Layer 2: Check if AdSense script loaded
-  // If the script tag was blocked, window.adsbygoogle won't exist
-  if (typeof (window as any).adsbygoogle === 'undefined') {
-    // Give it a moment in case it's still loading
-    await new Promise<void>((r) => setTimeout(r, 500));
-    if (typeof (window as any).adsbygoogle === 'undefined') {
-      return true;
-    }
-  }
-
-  // Layer 3: Fetch to a known ad URL
+  // Layer 2: Fetch to Adsterra script domain
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
+    // Intentar descargar uno de los invoke.js
     await fetch(
-      'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+      'https://www.highperformanceformat.com/2ec7f0b2cfde1bb7fab22507ac425bd7/invoke.js',
       { method: 'HEAD', mode: 'no-cors', signal: controller.signal }
     );
     clearTimeout(timeoutId);
@@ -52,3 +43,4 @@ export async function detectAdBlock(): Promise<boolean> {
 
   return false;
 }
+
