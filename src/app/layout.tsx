@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     creator: '@instaanon',
   },
   verification: {
-    google: 'REEMPLAZA-CON-TU-GOOGLE-SITE-VERIFICATION',
+    google: 'cA9o0v9YsyDq3EeKBhbLzAQjVqI3xitgxukiUhzCoyw',
   },
   alternates: {
     canonical: SITE_URL,
