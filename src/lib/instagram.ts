@@ -147,7 +147,7 @@ async function igFetchAuth(path: string) {
         'X-Requested-With': 'XMLHttpRequest',
         'Referer': 'https://www.instagram.com/',
       },
-      next: { revalidate: 300 }, // Cache de 5 minutos
+      cache: 'no-store', // Desactivar caché para evitar que un 404 antiguo se quede pegado
     });
 
     if (!res.ok) {
