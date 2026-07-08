@@ -143,11 +143,15 @@ async function igFetchAuth(path: string) {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.9',
-        'X-IG-App-ID': '936619743392459', // ID oficial de Instagram Web
+        'X-IG-App-ID': '936619743392459',
         'X-Requested-With': 'XMLHttpRequest',
         'Referer': 'https://www.instagram.com/',
+        'Origin': 'https://www.instagram.com',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
       },
-      cache: 'no-store', // Desactivar caché para evitar que un 404 antiguo se quede pegado
+      cache: 'no-store',
     });
 
     if (!res.ok) {
