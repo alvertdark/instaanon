@@ -26,10 +26,21 @@ export default async function ProfilePage({ params }: Props) {
 
   if (!cleanUsername || cleanUsername.length < 1) notFound();
 
-  const [profile, posts] = await Promise.all([
-    fetchProfile(cleanUsername),
-    fetchPosts(cleanUsername),
-  ]);
+  let profile;
+  let posts;
+
+  if (cleanUsername === 'alinnarosee') {
+    // Modo estático para este perfil (bypass del bloqueo de Vercel)
+    const staticData = require('@/data/alinnarosee2.json');
+    profile = staticData.profile;
+    posts = staticData.posts;
+  } else {
+    // Modo dinámico normal
+    [profile, posts] = await Promise.all([
+      fetchProfile(cleanUsername),
+      fetchPosts(cleanUsername),
+    ]);
+  }
 
   if (!profile) notFound();
 
