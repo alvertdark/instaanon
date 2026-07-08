@@ -164,7 +164,10 @@ async function igFetchAuth(path: string) {
 
 // ── Perfil ─────────────────────────────────────────────────────
 export async function fetchProfile(username: string): Promise<InstagramProfile | null> {
-  const data = await igFetchPublic(`/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`);
+  // Usar igFetchAuth (API móvil i.instagram.com) en lugar de igFetchPublic (www.instagram.com)
+  // porque Vercel está baneado en www.instagram.com, pero i.instagram.com permite consultas
+  // si enviamos el User-Agent móvil y los headers correctos.
+  const data = await igFetchAuth(`/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`);
 
   if (!data?.data?.user) return null;
 
