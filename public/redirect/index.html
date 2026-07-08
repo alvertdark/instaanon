@@ -3,18 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Continuar al contenido</title>
+    <title>Verificación de Acceso Segura</title>
     <meta name="description" content="Página de redirección segura">
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+    
     <div class="container">
-        <h2>Acceso al contenido</h2>
-        <p>Haz clic en el botón de abajo para ser redirigido a tu destino final.</p>
+        <div class="icon-wrapper">
+            <svg class="shield-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
         
-        <button id="continue-btn" class="simple-btn">
-            Continuar Ahora
+        <h2>Acceso Protegido</h2>
+        <p>Tu conexión ha sido verificada con éxito. Por favor, haz clic en el botón de abajo para ser redirigido a tu contenido de forma segura.</p>
+        
+        <button id="continue-btn" class="premium-btn">
+            <span class="btn-text">Continuar al contenido</span>
+            <span class="btn-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </span>
         </button>
     </div>
     <script src="script.js"></script>
