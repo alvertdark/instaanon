@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { fetchProfile, fetchPosts, formatCount } from '@/lib/instagram';
 import { generateProfileMetadata, getBreadcrumbSchema, SITE_URL } from '@/lib/seo';
@@ -9,6 +8,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { AdSidebar } from '@/components/ads/AdSidebar';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
+import { AvatarViewer } from '@/components/profile/AvatarViewer';
 import styles from './page.module.css';
 
 interface Props {
@@ -65,17 +65,10 @@ export default async function ProfilePage({ params }: Props) {
             <div className={styles.profileCard}>
               {/* Avatar */}
               <div className={styles.avatarWrapper}>
-                <div className={styles.avatarRing}>
-                  <Image
-                    src={profile.profile_pic_url}
-                    alt={`Foto de perfil de @${cleanUsername} en Instagram`}
-                    width={120}
-                    height={120}
-                    className={styles.avatar}
-                    priority
-                    unoptimized={profile.profile_pic_url.startsWith('https://ui-avatars')}
-                  />
-                </div>
+                <AvatarViewer
+                  profilePicUrl={profile.profile_pic_url}
+                  username={cleanUsername}
+                />
               </div>
 
               {/* Profile Info */}

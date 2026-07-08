@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import type { InstagramPost } from '@/lib/instagram';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { formatCount } from '@/lib/instagram';
@@ -14,67 +13,50 @@ interface Props {
 }
 
 export function DownloadModal({ post, username, onClose }: Props) {
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingIdx, setDownloadingIdx] = useState<number | null>(null);
   const [adShown, setAdShown] = useState(false);
-  const [currentIdx, setCurrentIdx] = useState(0);
 
   // Determinar si hay carrusel
   const hasCarousel = post.carousel_media && post.carousel_media.length > 0;
   const slides = hasCarousel ? post.carousel_media! : [post];
-  const currentSlide = slides[currentIdx];
 
-  const handleNext = () => {
-    if (currentIdx < slides.length - 1) {
-      setCurrentIdx((prev) => prev + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentIdx > 0) {
-      setCurrentIdx((prev) => prev - 1);
-    }
-  };
-
-  // Teclado para navegar carrusel
+  // Teclado para cerrar modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'ArrowLeft') handlePrev();
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIdx, slides.length]);
+  }, [onClose]);
 
-  const handleDownload = async () => {
+  const handleDownloadSlide = async (slide: any, idx: number) => {
     if (!adShown) {
       setAdShown(true);
       return;
     }
-    setDownloading(true);
+    setDownloadingIdx(idx);
     try {
-      const url = currentSlide.is_video
-        ? (currentSlide.video_url || currentSlide.display_url)
-        : currentSlide.display_url;
+      const url = slide.is_video
+        ? (slide.video_url || slide.display_url)
+        : slide.display_url;
 
       const response = await fetch(url);
       const blob = await response.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `instaanon_${username}_post_${post.id}_slide_${currentIdx + 1}.${currentSlide.is_video ? 'mp4' : 'jpg'}`;
+      a.download = `instaanon_${username}_post_${post.id}_slide_${idx + 1}.${slide.is_video ? 'mp4' : 'jpg'}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(a.href);
-      onClose();
     } catch {
       // Fallback: abrir en pestaña nueva
-      const url = currentSlide.is_video
-        ? (currentSlide.video_url || currentSlide.display_url)
-        : currentSlide.display_url;
+      const url = slide.is_video
+        ? (slide.video_url || slide.display_url)
+        : slide.display_url;
       window.open(url, '_blank', 'noopener,noreferrer');
     } finally {
-      setDownloading(false);
+      setDownloadingIdx(null);
     }
   };
 
@@ -83,67 +65,58 @@ export function DownloadModal({ post, username, onClose }: Props) {
       <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Ver publicación completa">
         <button className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">✕</button>
 
-        {/* Sección Izquierda: Media */}
+        {/* Sección Izquierda: Lista de Media */}
         <div className={styles.mediaSection}>
-          <div className={styles.mediaWrapper}>
-            {currentSlide.is_video ? (
-              <video
-                src={currentSlide.video_url || currentSlide.display_url}
-                className={styles.previewVideo}
-                controls
-                autoPlay
-                loop
-                muted
-                playsInline
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={currentSlide.display_url}
-                alt={`Publicación de @${username}`}
-                className={styles.previewImage}
-              />
-            )}
+          <div className={styles.mediaList}>
+            {slides.map((slide, idx) => (
+              <div key={slide.id || idx} className={styles.slideCard}>
+                <div className={styles.mediaWrapper}>
+                  {slide.is_video ? (
+                    <video
+                      key={slide.id || idx}
+                      src={slide.video_url || slide.display_url}
+                      className={styles.previewVideo}
+                      controls
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      key={slide.id || idx}
+                      src={slide.display_url}
+                      alt={`Diapositiva ${idx + 1} de la publicación`}
+                      className={styles.previewImage}
+                    />
+                  )}
+                </div>
+                <button
+                  className={`btn btn-primary ${styles.slideDownloadBtn}`}
+                  onClick={() => handleDownloadSlide(slide, idx)}
+                  disabled={downloadingIdx !== null}
+                >
+                  {downloadingIdx === idx ? (
+                    '⏳ Descargando...'
+                  ) : adShown ? (
+                    `⬇️ Descargar ${slide.is_video ? 'video' : 'imagen'} ${slides.length > 1 ? `#${idx + 1}` : ''}`
+                  ) : (
+                    `⬇️ Descargar ${slide.is_video ? 'video' : 'imagen'} ${slides.length > 1 ? `#${idx + 1}` : ''}`
+                  )}
+                </button>
+              </div>
+            ))}
           </div>
-
-          {/* Flechas de Navegación del Carrusel */}
-          {hasCarousel && (
-            <>
-              {currentIdx > 0 && (
-                <button
-                  className={`${styles.navBtn} ${styles.prevBtn}`}
-                  onClick={handlePrev}
-                  aria-label="Diapositiva anterior"
-                >
-                  ⟨
-                </button>
-              )}
-              {currentIdx < slides.length - 1 && (
-                <button
-                  className={`${styles.navBtn} ${styles.nextBtn}`}
-                  onClick={handleNext}
-                  aria-label="Siguiente diapositiva"
-                >
-                  ⟩
-                </button>
-              )}
-              <span className={styles.slideCounter}>
-                {currentIdx + 1} / {slides.length}
-              </span>
-            </>
-          )}
         </div>
 
         {/* Sección Derecha: Detalles */}
         <div className={styles.detailsSection}>
           <div className={styles.header}>
-            <Image
+            <img
               src={`https://ui-avatars.com/api/?name=${username}&background=8B5CF6&color=fff&size=80`}
               alt={username}
               width={36}
               height={36}
               className={styles.avatar}
-              unoptimized
             />
             <span className={styles.username}>@{username}</span>
           </div>
@@ -178,20 +151,11 @@ export function DownloadModal({ post, username, onClose }: Props) {
 
           {/* Acciones */}
           <div className={styles.actions}>
-            <button
-              className={`btn btn-primary ${styles.downloadBtn}`}
-              onClick={handleDownload}
-              disabled={downloading}
-              id="download-confirm-btn"
-            >
-              {downloading ? (
-                '⏳ Descargando...'
-              ) : adShown ? (
-                `⬇️ Iniciar descarga (${currentSlide.is_video ? 'video' : 'imagen'})`
-              ) : (
-                '⬇️ Descargar esta diapositiva'
-              )}
-            </button>
+            {!adShown && (
+              <p className={styles.unlockHint}>
+                Presiona el botón de descarga en cualquier imagen/video para desbloquearla.
+              </p>
+            )}
             <button className="btn btn-ghost" onClick={onClose}>
               Cerrar
             </button>

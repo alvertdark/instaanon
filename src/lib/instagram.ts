@@ -53,36 +53,120 @@ export interface InstagramHighlight {
   media_count: number;
 }
 
-// ── Configuración Scrape Creators ──────────────────────────────
-const API_KEY = process.env.SCRAPECREATORS_API_KEY || '';
-const BASE_URL = 'https://api.scrapecreators.com';
+// ── Configuración Scraping Directo de Instagram ────────────────
+let SESSION_ID = '';
+try {
+  SESSION_ID = decodeURIComponent(process.env.INSTAGRAM_SESSION_ID || '');
+} catch (e) {
+  SESSION_ID = process.env.INSTAGRAM_SESSION_ID || '';
+}
+const USER_ID = process.env.INSTAGRAM_USER_ID || '';
+const BASE_URL = 'https://www.instagram.com';
+const AUTH_BASE_URL = 'https://i.instagram.com';
 
-async function scFetch(path: string) {
-  if (!API_KEY) return null;
+// Convierte una URL del CDN de Instagram en una URL de nuestro proxy local para saltarse el bloqueo
+export function getProxyUrl(url: string | undefined): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  // Dejar URLs del mock intactas
+  if (
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('https://ui-avatars.com') ||
+    trimmed.startsWith('https://picsum.photos') ||
+    trimmed.startsWith('data:')
+  ) {
+    return trimmed;
+  }
+  return `/api/proxy?url=${encodeURIComponent(trimmed)}`;
+}
+
+export async function igFetchPublic(path: string) {
+  let cookieString = '';
+  if (SESSION_ID) {
+    cookieString = `sessionid=${SESSION_ID};`;
+    if (USER_ID) {
+      cookieString += ` ds_user_id=${USER_ID};`;
+    }
+  }
+
+  const headers: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'X-IG-App-ID': '936619743392459', // ID oficial de Instagram Web
+    'X-Requested-With': 'XMLHttpRequest',
+    'Referer': 'https://www.instagram.com/',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+  };
+
+  if (cookieString) {
+    headers['Cookie'] = cookieString;
+  }
 
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
-      headers: {
-        'x-api-key': API_KEY,
-      },
-      next: { revalidate: 300 }, // Cache 5 minutos
+      headers,
+      next: { revalidate: 300 }, // Cache de 5 minutos
     });
 
-    if (!res.ok) return null;
-    const json = await res.json();
-    if (!json.success) return null;
-    return json;
+    if (!res.ok) {
+      console.warn(`Instagram public fetch error (${res.status}):`, res.statusText);
+      return null;
+    }
+
+    return await res.json();
   } catch (error) {
-    console.error('Error fetching from Scrape Creators API:', error);
+    console.warn('Error fetching from Instagram publicly:', error);
+    return null;
+  }
+}
+
+async function igFetchAuth(path: string) {
+  if (!SESSION_ID) {
+    console.warn('Instagram Custom Scraper: No se ha configurado INSTAGRAM_SESSION_ID para llamadas autenticadas.');
+    return null;
+  }
+
+  // Preparamos la cabecera Cookie
+  let cookieString = `sessionid=${SESSION_ID};`;
+  if (USER_ID) {
+    cookieString += ` ds_user_id=${USER_ID};`;
+  }
+
+  try {
+    const res = await fetch(`${AUTH_BASE_URL}${path}`, {
+      headers: {
+        'Cookie': cookieString,
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'X-IG-App-ID': '936619743392459', // ID oficial de Instagram Web
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://www.instagram.com/',
+      },
+      next: { revalidate: 300 }, // Cache de 5 minutos
+    });
+
+    if (!res.ok) {
+      console.warn(`Instagram auth fetch error (${res.status}):`, res.statusText);
+      return null;
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.warn('Error fetching from Instagram with auth:', error);
     return null;
   }
 }
 
 // ── Perfil ─────────────────────────────────────────────────────
 export async function fetchProfile(username: string): Promise<InstagramProfile | null> {
-  const data = await scFetch(`/v1/instagram/profile?handle=${encodeURIComponent(username)}&trim=true`);
+  const data = await igFetchPublic(`/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`);
 
-  if (!data?.data?.user) return getMockProfile(username);
+  if (!data?.data?.user) return null;
 
   const u = data.data.user;
   return {
@@ -90,7 +174,7 @@ export async function fetchProfile(username: string): Promise<InstagramProfile |
     username: u.username,
     full_name: u.full_name || u.username,
     biography: u.biography || '',
-    profile_pic_url: u.profile_pic_url_hd || u.profile_pic_url || '',
+    profile_pic_url: getProxyUrl(u.profile_pic_url_hd || u.profile_pic_url || ''),
     followers_count: u.edge_followed_by?.count ?? u.follower_count ?? 0,
     following_count: u.edge_follow?.count ?? u.following_count ?? 0,
     media_count: u.edge_owner_to_timeline_media?.count ?? u.media_count ?? 0,
@@ -102,15 +186,24 @@ export async function fetchProfile(username: string): Promise<InstagramProfile |
   };
 }
 
-// ── Posts ──────────────────────────────────────────────────────
 export async function fetchPosts(username: string): Promise<InstagramPost[]> {
-  const data = await scFetch(`/v2/instagram/user/posts?handle=${encodeURIComponent(username)}`);
+  // Primero obtenemos el profile.id para usar la API móvil que no bloquea el feed
+  const profile = await fetchProfile(username);
+  if (!profile?.id) return [];
 
-  const items: any[] = data?.items || data?.data?.items || data?.data?.edges?.map((e: any) => e.node) || [];
+  const data = await igFetchAuth(`/api/v1/feed/user/${profile.id}/`);
+  const items: any[] = data?.items || [];
 
-  if (!items.length) return getMockPosts();
+  if (!items.length) {
+    return [];
+  }
 
-  return items.map(mapPost);
+  try {
+    return items.map(mapPost);
+  } catch (error) {
+    console.error('[DEBUG] Error mapping posts:', error);
+    return [];
+  }
 }
 
 function mapPost(item: any): InstagramPost {
@@ -124,8 +217,14 @@ function mapPost(item: any): InstagramPost {
       return {
         id: sub.id || sub.pk || '',
         is_video: isVideo,
-        display_url: sub.image_versions2?.candidates?.[0]?.url || sub.display_url || sub.display_uri || '',
-        video_url: isVideo ? (sub.video_versions?.[0]?.url || sub.video_url) : undefined,
+        display_url: getProxyUrl(
+          sub.image_versions2?.candidates?.[0]?.url ||
+          sub.image_versions?.items?.[0]?.url ||
+          sub.display_url ||
+          sub.display_uri ||
+          ''
+        ),
+        video_url: isVideo ? getProxyUrl(sub.video_versions?.[0]?.url || sub.video_url) : undefined,
       };
     });
   } else if (node.edge_sidecar_to_children?.edges) {
@@ -135,8 +234,13 @@ function mapPost(item: any): InstagramPost {
       return {
         id: sub.id || '',
         is_video: isVideo,
-        display_url: sub.display_url || '',
-        video_url: isVideo ? sub.video_url : undefined,
+        display_url: getProxyUrl(
+          sub.display_url ||
+          sub.image_versions2?.candidates?.[0]?.url ||
+          sub.image_versions?.items?.[0]?.url ||
+          ''
+        ),
+        video_url: isVideo ? getProxyUrl(sub.video_url || sub.video_versions?.[0]?.url) : undefined,
       };
     });
   }
@@ -146,20 +250,22 @@ function mapPost(item: any): InstagramPost {
   return {
     id: node.id || node.pk || '',
     shortcode: node.shortcode || node.code || '',
-    thumbnail_url:
+    thumbnail_url: getProxyUrl(
       node.image_versions2?.candidates?.[0]?.url ||
       node.thumbnail_src ||
       node.display_url ||
       node.image_versions?.items?.[0]?.url ||
-      '',
-    display_url:
+      ''
+    ),
+    display_url: getProxyUrl(
       node.display_url ||
       node.image_versions2?.candidates?.[0]?.url ||
       node.thumbnail_src ||
       node.image_versions?.items?.[0]?.url ||
-      '',
+      ''
+    ),
     is_video: isVideo,
-    video_url: node.video_url || node.video_versions?.[0]?.url,
+    video_url: (node.video_url || node.video_versions?.[0]?.url) ? getProxyUrl(node.video_url || node.video_versions?.[0]?.url) : undefined,
     like_count:
       node.like_count ??
       node.edge_liked_by?.count ??
@@ -183,18 +289,19 @@ function mapPost(item: any): InstagramPost {
 // ── Stories ────────────────────────────────────────────────────
 export async function fetchStories(userId: string): Promise<InstagramStory[]> {
   if (!userId) return [];
-  const data = await scFetch(`/v1/instagram/user/stories?user_id=${encodeURIComponent(userId)}`);
+  const data = await igFetchAuth(`/api/v1/feed/reels_media/?reel_ids=${encodeURIComponent(userId)}`);
 
-  const items: any[] = data?.reel?.items || data?.items || data?.data?.items || [];
+  const reel = data?.reels?.[userId];
+  const items: any[] = reel?.items || [];
   if (!items.length) return [];
 
   return items.map((item: any) => {
     const isVideo = item.media_type === 2 || !!item.video_versions;
     return {
       id: item.id || item.pk || '',
-      display_url: item.image_versions2?.candidates?.[0]?.url || item.display_url || '',
+      display_url: getProxyUrl(item.image_versions2?.candidates?.[0]?.url || item.display_url || ''),
       is_video: isVideo,
-      video_url: isVideo ? (item.video_versions?.[0]?.url || item.video_url) : undefined,
+      video_url: isVideo ? getProxyUrl(item.video_versions?.[0]?.url || item.video_url) : undefined,
       timestamp: item.taken_at ?? (Date.now() / 1000),
       expiry_timestamp: item.expiring_at ?? (Date.now() / 1000 + 86400),
     };
@@ -203,37 +310,43 @@ export async function fetchStories(userId: string): Promise<InstagramStory[]> {
 
 // ── Highlights ─────────────────────────────────────────────────
 export async function fetchHighlights(username: string): Promise<InstagramHighlight[]> {
-  const data = await scFetch(`/v1/instagram/user/highlights?handle=${encodeURIComponent(username)}`);
+  const profile = await fetchProfile(username);
+  if (!profile?.id) return [];
 
-  const items: any[] = data?.highlights || data?.data?.items || data?.data?.tray || [];
+  const data = await igFetchAuth(`/api/v1/highlights/${encodeURIComponent(profile.id)}/highlights_tray/`);
+
+  const items: any[] = data?.tray || [];
   if (!items.length) return [];
 
   return items.map((item: any) => ({
     id: item.id || item.pk || '',
     title: item.title || 'Destacado',
-    cover_media_url:
+    cover_media_url: getProxyUrl(
       item.cover_media?.cropped_image_version?.url ||
+      item.cover_media?.square_cropped_page_indicator_image_version?.url ||
       item.cover_media_url ||
-      item.cover?.url ||
-      '',
+      ''
+    ),
     media_count: item.media_count ?? 0,
   }));
 }
 
 export async function fetchHighlightDetails(highlightId: string): Promise<InstagramStory[]> {
   if (!highlightId) return [];
-  const data = await scFetch(`/v1/instagram/user/highlight/detail?id=${encodeURIComponent(highlightId)}`);
+  const reelId = highlightId.startsWith('highlight:') ? highlightId : `highlight:${highlightId}`;
+  const data = await igFetchAuth(`/api/v1/feed/reels_media/?reel_ids=${encodeURIComponent(reelId)}`);
 
-  const items: any[] = data?.items || data?.data?.items || [];
+  const reel = data?.reels?.[reelId];
+  const items: any[] = reel?.items || [];
   if (!items.length) return [];
 
   return items.map((item: any) => {
     const isVideo = item.media_type === 2 || !!item.video_versions;
     return {
       id: item.id || item.pk || '',
-      display_url: item.image_versions2?.candidates?.[0]?.url || item.display_url || '',
+      display_url: getProxyUrl(item.image_versions2?.candidates?.[0]?.url || item.display_url || ''),
       is_video: isVideo,
-      video_url: isVideo ? (item.video_versions?.[0]?.url || item.video_url) : undefined,
+      video_url: isVideo ? getProxyUrl(item.video_versions?.[0]?.url || item.video_url) : undefined,
       timestamp: item.taken_at ?? (Date.now() / 1000),
       expiry_timestamp: item.expiring_at ?? (Date.now() / 1000 + 86400),
     };
@@ -248,35 +361,5 @@ export function formatCount(n: number): string {
   return n.toString();
 }
 
-// ── Mock data (sin API key o en desarrollo) ────────────────────
-function getMockProfile(username: string): InstagramProfile {
-  return {
-    id: 'mock-user-id',
-    username,
-    full_name: username.charAt(0).toUpperCase() + username.slice(1),
-    biography:
-      '📍 Este es un perfil de ejemplo para desarrollo.\n🌟 Aquí aparecerá la bio real del usuario.',
-    profile_pic_url: `https://ui-avatars.com/api/?name=${username}&background=8B5CF6&color=fff&size=200`,
-    followers_count: 125400,
-    following_count: 892,
-    media_count: 248,
-    is_private: false,
-    is_verified: false,
-    external_url: '',
-  };
-}
 
-function getMockPosts(): InstagramPost[] {
-  return Array.from({ length: 12 }, (_, i) => ({
-    id: `mock-${i}`,
-    shortcode: `abc${i}`,
-    thumbnail_url: `https://picsum.photos/seed/${i + 10}/400/400`,
-    display_url: `https://picsum.photos/seed/${i + 10}/800/800`,
-    is_video: i % 4 === 3,
-    like_count: Math.floor(Math.random() * 50000) + 1000,
-    comment_count: Math.floor(Math.random() * 500) + 10,
-    caption: i === 0 ? '¡Nueva publicación! 🎉 #instagram #photography' : undefined,
-    timestamp: Date.now() / 1000 - i * 86400,
-  }));
-}
 

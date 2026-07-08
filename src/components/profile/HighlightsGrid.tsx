@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import type { InstagramHighlight, InstagramStory } from '@/lib/instagram';
 import styles from './HighlightsGrid.module.css';
 
@@ -184,13 +183,12 @@ export function HighlightsGrid({ highlights, username, profilePic }: Props) {
             {/* Cabecera */}
             <div className={styles.viewerHeader}>
               <div className={styles.userInfo}>
-                <Image
+                <img
                   src={profilePic || `https://ui-avatars.com/api/?name=${username}&background=8B5CF6&color=fff`}
                   alt={username}
                   width={32}
                   height={32}
                   className={styles.userAvatar}
-                  unoptimized
                 />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span className={styles.username}>@{username}</span>

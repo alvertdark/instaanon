@@ -67,6 +67,7 @@ export function AdsterraAd({ id, width, height }: AdsterraAdProps) {
       }}
       scrolling="no"
       title={`ad-${id}`}
+      sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
     />
   );
 }

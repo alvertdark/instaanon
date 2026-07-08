@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import type { InstagramPost } from '@/lib/instagram';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { DownloadModal } from '@/components/profile/DownloadModal';
@@ -17,10 +16,16 @@ type Tab = 'posts' | 'reels';
 export function ProfileGrid({ posts, username }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('posts');
   const [selectedPost, setSelectedPost] = useState<InstagramPost | null>(null);
+  const [visiblePostsCount, setVisiblePostsCount] = useState(9);
 
   const displayPosts = posts.filter((p) =>
-    activeTab === 'reels' ? p.is_video : !p.is_video
+    activeTab === 'reels' ? p.is_video : true
   );
+
+  // Paginación: solo aplicamos el límite de 9 elementos en la pestaña de publicaciones
+  const postsToShow = activeTab === 'posts'
+    ? displayPosts.slice(0, visiblePostsCount)
+    : displayPosts;
 
   return (
     <div className={styles.wrapper}>
@@ -32,7 +37,11 @@ export function ProfileGrid({ posts, username }: Props) {
             role="tab"
             aria-selected={activeTab === tab}
             className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => {
+              setActiveTab(tab);
+              // Opcional: reiniciar el contador al cambiar de pestaña
+              setVisiblePostsCount(9);
+            }}
             id={`tab-${tab}`}
           >
             {tab === 'posts' ? '📸 Publicaciones' : '🎬 Reels'}
@@ -42,7 +51,7 @@ export function ProfileGrid({ posts, username }: Props) {
 
       {/* Grid */}
       <div className={`media-grid ${styles.grid}`} role="list" aria-label={`${activeTab} de @${username}`}>
-        {displayPosts.map((post, idx) => {
+        {postsToShow.map((post, idx) => {
           // Insert in-feed ad every 6 posts
           const items = [];
           if (idx > 0 && idx % 6 === 0) {
@@ -60,14 +69,12 @@ export function ProfileGrid({ posts, username }: Props) {
               onClick={() => setSelectedPost(post)}
               aria-label={`Publicación de @${username}${post.caption ? ': ' + post.caption.slice(0, 50) : ''}`}
             >
-              <Image
+              <img
                 src={post.thumbnail_url}
                 alt={`Publicación de @${username} en Instagram${post.caption ? ': ' + post.caption.slice(0, 80) : ''}`}
-                fill
                 sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                style={{ objectFit: 'cover' }}
+                style={{ position: 'absolute', height: '100%', width: '100%', top: 0, left: 0, objectFit: 'cover' }}
                 loading={idx < 6 ? 'eager' : 'lazy'}
-                unoptimized
               />
               <div className="media-item-overlay">
                 {post.is_video && <span className={styles.videoIcon}>▶</span>}
@@ -79,6 +86,19 @@ export function ProfileGrid({ posts, username }: Props) {
           return items;
         })}
       </div>
+
+      {/* Botón Mostrar más (Solo para la pestaña de publicaciones y si hay más elementos) */}
+      {activeTab === 'posts' && visiblePostsCount < displayPosts.length && (
+        <div className={styles.loadMoreWrapper}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setVisiblePostsCount((prev) => prev + 9)}
+            id="load-more-posts-btn"
+          >
+            Mostrar más publicaciones
+          </button>
+        </div>
+      )}
 
       {displayPosts.length === 0 && (
         <div className={styles.empty}>

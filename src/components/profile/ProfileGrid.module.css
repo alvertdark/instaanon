@@ -31,3 +31,11 @@
   padding: var(--space-16);
   color: var(--color-muted);
 }
+
+.loadMoreWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-8);
+  width: 100%;
+}
