@@ -63,7 +63,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
-
       </head>
       <body>
         <AdBlockDetector />
@@ -72,6 +71,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="main-content">{children}</main>
           <Footer />
         </div>
+
+        {/* Popunder */}
+        <Script
+          src="https://pl30276283.effectivecpmnetwork.com/7b/2f/2a/7b2f2ae8facda0f5004c9603a32e183b.js"
+          strategy="afterInteractive"
+        />
+        {/* Social Bar */}
+        <Script
+          src="https://pl30276284.effectivecpmnetwork.com/eb/66/0d/eb660d276bb9f316a660124a732a0e16.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
